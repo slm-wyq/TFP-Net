@@ -1,0 +1,10 @@
+target,immunogenicity,group_id,species,our_species,,inferred_origin,link,composition
+NeuNAc(a2-3)Gal(b1-3)[Fuc(a1-4)]GlcNAc,0,13,['Homo_sapiens'],Homo_sapiens,,,free,"(('Fuc', 1), ('Gal', 1), ('GlcNAc', 1), ('NeuNAc', 1))"
+NeuNAC(a2-3)Gal(b1-4)[Fuc(a1-3)]GlcNAc,1,13,['Helicobacter_pylori'],,,,,
+NeuNAc(a2-3)Gal(b1-4)GlcNAc(b1-3)Fuc,1,13,['Cricetulus_griseus'],,,,O,"(('Fuc', 1), ('Gal', 1), ('GlcNAc', 1), ('NeuNAc', 1))"
+NeuNAc(a2-3)Gal(b1-3)GalNAc,0,111,"['Bos_taurus', 'Canis_lupus', 'Equus_caballus', 'Gallus_gallus', 'Homo_sapiens', 'MurineHepatitis_Virus', 'MurineLeukemia_Virus', 'Mus_musculus', 'Oryctolagus_cuniculus', 'Rattus_norvegicus', 'Sus_scrofa']","Homo_sapiens,Virus",,,O,"(('Gal', 1), ('GalNAc', 1), ('NeuNAc', 1))"
+GalNAc(b1-4)[NeuNAc(a2-3)]Gal,1,111,,Eukarya,,Eukarya,,"(('Gal', 1), ('GalNAc', 1), ('NeuNAc', 1))"
+Gal(b1-3)GlcNAc(b1-3)Gal(b1-4)Glc,0,154,"['Canis_lupus', 'Diceros_bicornis', 'Escherichia_coli', 'Giraffa_camelopardalis', 'Homo_sapiens', 'Osphranter_rufus', 'Pan_paniscus', 'Pan_troglodytes', 'Ursus_americanus', 'Ursus_arctos']","Homo_sapiens,Bacteria",,,free,"(('Gal', 2), ('Glc', 1), ('GlcNAc', 1))"
+Gal(b1-4)GlcNAc(b1-3)Gal(b1-4)Glc,1,154,"['Canis_lupus', 'Escherichia_coli', 'Gorilla_gorilla', 'Homo_sapiens', 'Nasua_narica', 'Pan_paniscus', 'Pan_troglodytes', 'Pongo_pygmaeus', 'Trichechus_manatus', 'Tursiops_truncatus', 'Ursus_americanus', 'Ursus_arctos']","Homo_sapiens,Bacteria",,,free,"(('Gal', 2), ('Glc', 1), ('GlcNAc', 1))"
+NeuNAc(a2-3)Gal(b1-4)GlcNAc(b1-3)Gal(b1-4)Glc,1,155,,Bacteria,,Bacteria,,"(('Gal', 2), ('Glc', 1), ('GlcNAc', 1), ('NeuNAc', 1))"
+NeuNAc(a2-6)Gal(b1-4)GlcNAc(b1-3)Gal(b1-4)Glc,0,155,['Homo_sapiens'],Homo_sapiens,,,free,"(('Gal', 2), ('Glc', 1), ('GlcNAc', 1), ('NeuNAc', 1))"
