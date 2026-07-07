@@ -10,8 +10,6 @@
   <img src="图片1.svg" alt="TFP-Net overview" width="820">
 </p>
 
-This repository accompanies the manuscript draft *Gly_embedding_with_application_SLM.pdf*
-(preprint, included in this directory).
 
 ---
 
