@@ -13,8 +13,6 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 import ast
 
-
-# 1. ========== 改进的数据处理模块 ==========
 def hierarchy_filter(df_in, rank='kingdom', min_seq=5, wildcard_seed=False,
                      wildcard_list=None, wildcard_name=None, r=0.1):
     df = copy.deepcopy(df_in)
@@ -23,7 +21,6 @@ def hierarchy_filter(df_in, rank='kingdom', min_seq=5, wildcard_seed=False,
     retain_columns = [rank, 'target', 'smiles','fingerprint']
     df = df[retain_columns]
 
-    # 去重处理（每个类别内target唯一）
     dedup_dfs = []
     for cls in df[rank].unique():
         class_df = df[df[rank] == cls]
@@ -31,12 +28,11 @@ def hierarchy_filter(df_in, rank='kingdom', min_seq=5, wildcard_seed=False,
         dedup_dfs.append(dedup_df)
     df = pd.concat(dedup_dfs)
 
-    # 过滤低频类别
     class_counts = df[rank].value_counts()
     valid_class_list = class_counts[class_counts >= min_seq].index.tolist()
     df = df[df[rank].isin(valid_class_list)].reset_index(drop=True)
 
-    # 生成数字标签映射
+
     sorted_class_list = sorted(df[rank].unique())
     class_class_converter = {cls: i for i, cls in enumerate(sorted_class_list)}
     df['label'] = df[rank].map(class_class_converter)
@@ -56,15 +52,9 @@ def hierarchy_filter(df_in, rank='kingdom', min_seq=5, wildcard_seed=False,
 
 class FeatureGenerator:
     def __init__(self):
-        self.smiles_cache = {}  # 缓存SMILES到指纹的映射
+        self.smiles_cache = {}  
 
     def generate(self, target_list, df_ref):
-        """
-        生成特征矩阵和有效索引
-        包含自动错误处理：
-        1. 无效SMILES跳过
-        2. 指纹长度验证
-        """
         features = []
         valid_indices = []
         target_to_fp = df_ref.set_index('target')['fingerprint'].to_dict()
@@ -82,7 +72,6 @@ class FeatureGenerator:
                 valid_indices.append(i)
         return np.array(features), valid_indices
 
-# 3. ========== 数据加载模块 ==========
 class GlycanDataset(Dataset):
     def __init__(self, features, labels):
         self.features = torch.FloatTensor(features)
@@ -186,7 +175,6 @@ class Trainer:
 
 
 
-# 配置参数
 config = {
     'rank': 'kingdom',
     'min_seq': 5,
@@ -223,7 +211,6 @@ model = GlycClassifier(2072, len(class_list)).to(device)
 #     patience=5,
 #     verbose=True
 # )
-# # 训练循环
 # best_acc = 0
 # trainer = Trainer(model, criterion, optimizer_ft)
 # for epoch in range(config['epochs']):
@@ -254,21 +241,18 @@ all_targets = [all_targets[i] for i in valid_indices]
 all_kingdoms = [all_kingdoms[i] for i in valid_indices]
 
 glycan_loader = DataLoader(torch.FloatTensor(all_features), batch_size=32, shuffle=False)
-
-# 提取768维中间层表示
 model_fp.eval()
 res = []
 with torch.no_grad():
     for inputs in glycan_loader:
         inputs = inputs.to(device)
-        intermediate_model = nn.Sequential(*list(model_fp.layers.children())[:7])  # 提取到Linear(768)
+        intermediate_model = nn.Sequential(*list(model_fp.layers.children())[:7])  
         out = intermediate_model(inputs)
         res.append(out.cpu())
 
 res2 = [res[k].detach().numpy() for k in range(len(res))]
 res2 = pd.DataFrame(np.concatenate(res2))
 
-# t-SNE 聚类
 from sklearn.manifold import TSNE
 
 tsne_emb = TSNE(random_state=42).fit_transform(res2)
@@ -279,7 +263,6 @@ ax = sns.scatterplot(x=tsne_emb[:, 0], y=tsne_emb[:, 1], s=40, alpha=0.4,
 # sns.scatterplot(x=tsne_emb[:, 0], y=tsne_emb[:, 1], s=50, alpha=0.8, edgecolor="w", linewidth=0.3,
 #                 hue=taxonomic_glycans.kingdom.values.tolist(), palette='colorblind', rasterized=False)
 
-# 移除图表四周的边框线
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
@@ -290,7 +273,7 @@ plt.xlabel('t-SNE Dim1')
 plt.ylabel('t-SNE Dim2')
 plt.title(f'FP-Net')
 plt.tight_layout()
-# plt.savefig("sine_wave.svg", format="svg")  # format 参数可省略，会根据文件名自动识别
+# plt.savefig("sine_wave.svg", format="svg")  
 plt.savefig("FP-Net.svg", format="svg", bbox_inches='tight')
 plt.show()
 
