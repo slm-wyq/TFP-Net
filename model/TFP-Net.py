@@ -433,56 +433,13 @@ def dataset_to_graphs(glycan_list, labels, fingerprint_list, libr=lib, label_typ
         graphs.append(
             Data(
                 x=x,
-                edge_index_ori=edge_index_ori,  # 原始边（不含虚拟节点）
-                edge_index_full=edge_index_full,  # 完整边（含虚拟节点）
+                edge_index_ori=edge_index_ori,  
+                edge_index_full=edge_index_full,  
                 y=y_tensor,
                 fp=fp_tensor
             )
         )
     return graphs
-# def dataset_to_graphs(glycan_list, labels, fingerprint_list, libr=lib, label_type=torch.long):
-#     """wrapper function to convert a whole list of glycans into an undirected graph dataset
-#     （修改为无向图：为每条原始边添加反向边，确保边的双向性）
-#     """
-#     graphs = []
-#     for seq, fp, y in zip(glycan_list, fingerprint_list, labels):
-#         x_nodes, edges = glycan_to_graph(seq, libr)
-#         num_nodes = len(x_nodes)
-#         # 节点特征（包含虚拟节点）
-#         x = torch.tensor(x_nodes + [len(libr)], dtype=torch.long)
-#
-#         # -------------------------- 关键修改：原始边转为无向边 --------------------------
-#         # 原始有向边 (u->v)
-#         send_ori, recv_ori = edges
-#         # 添加反向边 (v->u)，形成无向边集合
-#         send_undirected = send_ori + recv_ori  # 原发送节点 + 原接收节点（作为新发送节点）
-#         recv_undirected = recv_ori + send_ori  # 原接收节点 + 原发送节点（作为新接收节点）
-#         # 无向化的原始边索引
-#         edge_index_ori = torch.tensor([send_undirected, recv_undirected], dtype=torch.long)
-#
-#         # -------------------------- 虚拟节点边保持双向（无需修改） --------------------------
-#         # 虚拟节点与所有原始节点的双向连接（已满足无向性）
-#         send_extra = list(range(num_nodes)) + [num_nodes] * num_nodes
-#         recv_extra = [num_nodes] * num_nodes + list(range(num_nodes))
-#         edge_index_virtual = torch.tensor([send_extra, recv_extra], dtype=torch.long)
-#
-#         # -------------------------- 合并无向边 --------------------------
-#         edge_index_full = torch.cat([edge_index_ori, edge_index_virtual], dim=1)
-#
-#         # 标签与指纹
-#         y_tensor = torch.tensor([y], dtype=label_type)
-#         fp_tensor = torch.tensor(fp, dtype=torch.float)
-#
-#         graphs.append(
-#             Data(
-#                 x=x,
-#                 edge_index_ori=edge_index_ori,  # 无向化的原始边（含双向）
-#                 edge_index_full=edge_index_full,  # 无向化的完整边（含虚拟节点双向边）
-#                 y=y_tensor,
-#                 fp=fp_tensor
-#             )
-#         )
-#     return graphs
 
 def seed_wildcard_hierarchy(glycan_list, label_list, wildcard_list, wildcard_name, r=0.1):
     """adds dataframe rows in which glycan parts have been replaced with the appropriate wildcards
@@ -658,15 +615,14 @@ class TFPNet(nn.Module):
 
     def forward(self, x, edge_index_ori, edge_index_full, batch, fp, inference=False):
         h = self.item_embedding(x)  # [N, hidden]
-        # 生成虚拟节点mask (每个图的最后一个节点)
+        # 生成虚拟节点mask 
         virtual_mask = torch.zeros_like(batch, dtype=torch.bool)
         unique_batch = torch.unique(batch)
         for b in unique_batch:
             mask = (batch == b)
             last_idx = torch.where(mask)[0][-1]
             virtual_mask[last_idx] = True
-        # 用指纹特征替换虚拟节点 (向量级操作)
-        h[virtual_mask] = self.fp_emb(fp)  # 更精确的定位
+        h[virtual_mask] = self.fp_emb(fp) 
         # === 前三层使用原始边 ===
         x1 = self.conv1(h, edge_index_ori)
         x1 = F.leaky_relu(x1)
@@ -687,7 +643,6 @@ class TFPNet(nn.Module):
         x4 = self.conv4(x3, edge_index_full)
         x4 = F.leaky_relu(x4)
         x4_pool = global_add_pool(x4, batch)
-        # # === 特征拼接与分类 ===
         graph_repr = torch.cat([x1_pool, x2_pool, x3_pool, x4_pool], dim=1)
         out = self.fc(graph_repr)
         if inference:
@@ -744,8 +699,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     best_acc = 0
     val_losses = []
     val_acc = []
-    # 获取所有可能的类别标签
-    class_labels = np.arange(len(class_list))  # 关键修改
+    class_labels = np.arange(len(class_list)
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -758,8 +712,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 model.eval()
 
             running_loss = []
-            all_preds = []  # 存储整个phase的预测结果
-            all_labels = []  # 存储整个phase的真实标签
+            all_preds = []  
+            all_labels = []  
 
             for data in dataloaders[phase]:
                 x, y, edge_index_ori, edge_index_full, batch, fp = data.x, data.y, data.edge_index_ori, data.edge_index_full, data.batch, data.fp
@@ -772,9 +726,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    # data.y.shape[0] 就是 batch_size
+                    # data.y.shape[0] 
                     bs = data.y.size(0)
-                    fp = fp.view(bs, -1).cuda()  # 变成 [batch_size, fp_dim]
+                    fp = fp.view(bs, -1).cuda()  
                     pred = model(x, edge_index_ori, edge_index_full, batch, fp)
                     # pred = model(x, edge_index, batch,fingerprint)
                     loss = criterion(pred, y)
@@ -785,28 +739,24 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
                 running_loss.append(loss.item())
 
-                # 收集预测和标签
                 preds = torch.argmax(pred, dim=1).detach().cpu().numpy()
                 all_preds.extend(preds)
                 all_labels.extend(y.cpu().numpy())
 
-            # 整个phase结束后统一计算指标
             epoch_loss = np.mean(running_loss)
 
-            # 显式传递所有标签类别
             epoch_acc = accuracy_score(all_labels, all_preds)
             epoch_mcc = matthews_corrcoef(
                 all_labels,
                 all_preds
             )
 
-            # 显式计算混淆矩阵（可选）
             cm = confusion_matrix(
                 all_labels,
                 all_preds,
-                labels=class_labels  # 关键修改
+                labels=class_labels  
             )
-            # print(f'Confusion Matrix:\n{cm}')  # 可选打印
+            # print(f'Confusion Matrix:\n{cm}') 
 
             print('{} Loss: {:.4f} Accuracy: {:.4f} MCC: {:.4f}'.format(
                 phase, epoch_loss, epoch_acc, epoch_mcc))
