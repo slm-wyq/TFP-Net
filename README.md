@@ -10,11 +10,6 @@
   <img src="图片1.svg" alt="TFP-Net overview" width="820">
 </p>
 
-This repository accompanies the manuscript *Gly_embedding_with_application_SLM.pdf*
-(included in this directory).
-
----
-
 ## Overview
 
 Glycans are branched carbohydrate structures whose biological function is jointly determined by
@@ -104,6 +99,8 @@ provide a structural, receptor-level view that complements the learned embedding
 
 ## Interactive web application (`html/`)
 
+🌐 **Live app: [https://glycan-risk.top/](https://glycan-risk.top/)**
+
 We built an **interactive web application** around TFP-Net. It goes well beyond displaying our
 results — it turns the model into a usable tool with the following capabilities:
 
@@ -136,44 +133,15 @@ Key dependencies:
 | -------- | -------- |
 | Deep learning | `torch==2.1.0+cu121`, `torch-geometric==2.6.1`, `torch-scatter`, `torch-sparse`, `torch-cluster`, `torch-spline-conv` |
 | Cheminformatics | `rdkit==2024.9.6`, `glyles==1.2.2` |
-| ML / stats | `scikit-learn==1.6.1`, `scipy`, `numpy==1.26.3`, `pandas==2.2.3`, `statsmodels`, `optuna` |
-| Visualization / web | `plotly`, `matplotlib`, `seaborn`, `dash`, `dash-bootstrap-components`, `gunicorn` |
-| Graphs / utils | `networkx`, `pydot`, `tqdm`, `joblib` |
 
 A minimal install:
 
 ```bash
-# 1) PyTorch + PyG (match your CUDA version — example: CUDA 12.1)
+# PyTorch + PyG (match your CUDA version — example: CUDA 12.1)
 pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cu121
 pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv \
     -f https://data.pyg.org/whl/torch-2.1.0+cu121.html
 
-# 2) Cheminformatics + ML stack
-pip install rdkit glyles scikit-learn numpy pandas matplotlib seaborn plotly optuna joblib networkx tqdm
+# Cheminformatics
+pip install rdkit==2024.9.6 glyles==1.2.2
 ```
-
----
-
-## Quick start
-
-```bash
-# 1) Glycan sequences → SMILES
-cd proprecess
-python smiles.py
-
-# 2) SMILES → fingerprints
-python fingerprint.py
-
-# 3) Train / embed with a model
-cd ../model
-python TFP-Net.py          # main model
-# python T-Net.py          # ablation: topology only
-# python FP-Net.py         # ablation: fingerprint only
-
-# 4) Fit reference densities and compute the risk score
-python GMM.py
-cd ../proprecess
-python sigmod_risk.py      # normalize risk score to [-1, 1]
-```
-
-> Input/output paths are set near the top of each script — adjust them to your local layout.
