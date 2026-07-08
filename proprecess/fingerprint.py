@@ -1548,11 +1548,9 @@ if __name__ == '__main__':
             print(f"Failed to generate molecule from SMILES: {smiles}")
             return None, None, None
 
-        # 生成MACCS指纹
         maccs_fp = AllChem.GetMACCSKeysFingerprint(mol)
         maccs_fp = [int(bit) for bit in maccs_fp.ToBitString()]
 
-        # 生成PubChem指纹
         pubchem_fp = GetPubChemFPs(mol)
         pubchem_fp = pubchem_fp.tolist()
 
@@ -1577,6 +1575,6 @@ if __name__ == '__main__':
 #
 #
 
-    input_csv_path = '../output/MPM-smiles.csv'  # 替换为你的CSV文件路径
-    output_csv_path = '../output/fingerprint.csv'  # 替换为输出文件路径
+    input_csv_path = '../output/MPM-smiles.csv'  
+    output_csv_path = '../output/fingerprint.csv' 
     process_csv(input_csv_path, output_csv_path)
