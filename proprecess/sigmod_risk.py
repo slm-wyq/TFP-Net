@@ -2,29 +2,27 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ====================== 1. 你只需要改这里 ======================
-FILE_PATH = "../output/glycan_embeddings_with_risk_best.csv"  # 替换成你的文件路径
-k = 1e-1                      # 压缩系数：数值越小压缩越柔和，越大压缩越陡
-SAVE_PATH = "../output/sigmod_risk.csv"    # 输出文件名
-# ==============================================================
+FILE_PATH = "../output/glycan_embeddings_with_risk_best.csv"  
+k = 1e-1                      
+SAVE_PATH = "../output/sigmod_risk.csv"   
 
-# 读取数据
+
 df = pd.read_csv(FILE_PATH)
 
-# 取出原始风险分数
+
 x = df["Risk_LLR_immunePathogen"].values
 
-# 你指定的 Sigmoid 映射公式：严格 [-1, 1]
+
 def scale_to_neg1_1(x, k=1e-4):
     return 2 / (1 + np.exp(-k * x)) - 1
 
-# 计算标准化分数
+
 df["Risk_Scaled_-1_1"] = scale_to_neg1_1(x, k=k)
 
-# 保存结果
+
 df.to_csv(SAVE_PATH, index=False, encoding="utf-8-sig")
 
-# ====================== 可视化检查 ======================
+
 plt.figure(figsize=(10, 4))
 
 plt.subplot(1,2,1)
