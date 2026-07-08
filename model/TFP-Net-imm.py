@@ -396,43 +396,27 @@ def glycan_to_graph(glycan, libr=lib):
 
 
 def dataset_to_graphs(glycan_list, labels, fingerprint_list, libr=lib, label_type=torch.long):
-    """wrapper function to convert a whole list of glycans into a graph dataset
-    glycan_list -- list of IUPACcondensed glycan sequences (string)
-    label_type -- which tensor type for label, default is torch.long for binary labels, change to torch.float for continuous
-    separate -- True returns node list / edge list / label list as separate files; False returns list of data tuples; default is False
-    lib -- sorted list of unique glycoletters observed in the glycans of our dataset
-    context -- legacy-ish; used for generating graph context dataset for pre-training; keep at False
-    error_catch -- troubleshooting option, True will print glycans that cannot be converted into graphs; default is False
-    wo_labels -- change to True if you do not want to pass and receive labels; default is False
-
-    returns list of node list / edge list / label list data tuples
-    """
     graphs = []
     for seq, fp, y in zip(glycan_list, fingerprint_list, labels):
         x_nodes, edges = glycan_to_graph(seq, libr)
         num_nodes = len(x_nodes)
         x = torch.tensor(x_nodes + [len(libr)], dtype=torch.long)
 
-        # 原始边
         send_ori, recv_ori = edges
         edge_index_ori = torch.tensor([send_ori, recv_ori], dtype=torch.long)
 
-        # 虚拟节点边（双向连接）
         send_extra = list(range(num_nodes)) + [num_nodes] * num_nodes
         recv_extra = [num_nodes] * num_nodes + list(range(num_nodes))
         edge_index_virtual = torch.tensor([send_extra, recv_extra], dtype=torch.long)
-
-        # 合并后的完整边
         edge_index_full = torch.cat([edge_index_ori, edge_index_virtual], dim=1)
-        # 标签与指纹
         y_tensor = torch.tensor([y], dtype=label_type)
         fp_tensor = torch.tensor(fp, dtype=torch.float)
 
         graphs.append(
             Data(
                 x=x,
-                edge_index_ori=edge_index_ori,  # 原始边（不含虚拟节点）
-                edge_index_full=edge_index_full,  # 完整边（含虚拟节点）
+                edge_index_ori=edge_index_ori,  
+                edge_index_full=edge_index_full, 
                 y=y_tensor,
                 fp=fp_tensor
             )
@@ -546,21 +530,15 @@ from torch_geometric.nn import GINConv, global_add_pool, GraphNorm
 from torch_geometric.utils import to_dense_batch
 
 
-class GINTransformerNet(nn.Module):
-    """
-    A hybrid GIN + Graph TransformerConv model for graph-level classification.
-    """
-
+class T-Net(nn.Module):
     def __init__(self, num_classes=1, lib_size=10000, hidden_dim=256, fp_dim=2072,
                  heads=8, fp_emb_dim=128, dropout=0.5):
         super(GINTransformerNet, self).__init__()
         self.hidden_dim = hidden_dim
         self.dropout = dropout
 
-        # Node embedding layer
         self.item_embedding = nn.Embedding(num_embeddings=lib_size + 1,
                                            embedding_dim=hidden_dim)
-        # 指纹 embedding 层
         self.fp_emb = nn.Sequential(
             nn.Linear(fp_dim, fp_emb_dim),
             nn.LeakyReLU(),
@@ -569,19 +547,17 @@ class GINTransformerNet(nn.Module):
             nn.Linear(fp_emb_dim, hidden_dim),
             nn.LeakyReLU()
         )
-        # Graph TransformerConv for higher-order interactions
-        # we split hidden_dim into heads
         self.conv1 = TransformerConv(
             in_channels=hidden_dim,
             out_channels=hidden_dim // heads,
-            heads=heads,  # 头数从4增加到8
+            heads=heads, 
             concat=True,
             dropout=0.1
         )
         self.conv2 = TransformerConv(
             in_channels=hidden_dim,
             out_channels=hidden_dim // heads,
-            heads=heads,  # 头数从4增加到8
+            heads=heads,
             concat=True,
             dropout=0.1
         )
@@ -589,14 +565,14 @@ class GINTransformerNet(nn.Module):
         self.conv3 = TransformerConv(
             in_channels=hidden_dim,
             out_channels=hidden_dim // heads,
-            heads=heads,  # 头数从4增加到8
+            heads=heads, 
             concat=True,
             dropout=0.1
         )
         self.conv4 = TransformerConv(
             in_channels=hidden_dim,
             out_channels=hidden_dim // heads,
-            heads=heads,  # 头数从4增加到8
+            heads=heads, 
             concat=True,
             dropout=0.1
         )
@@ -615,7 +591,6 @@ class GINTransformerNet(nn.Module):
     def forward(self, x, edge_index_ori, edge_index_full, batch, fp, inference=False):
         h = self.item_embedding(x)  # [N, hidden]
 
-        # 生成虚拟节点mask (每个图的最后一个节点)
         virtual_mask = torch.zeros_like(batch, dtype=torch.bool)
         unique_batch = torch.unique(batch)
         for b in unique_batch:
@@ -623,10 +598,8 @@ class GINTransformerNet(nn.Module):
             last_idx = torch.where(mask)[0][-1]
             virtual_mask[last_idx] = True
 
-        # 用指纹特征替换虚拟节点 (向量级操作)
-        h[virtual_mask] = self.fp_emb(fp)  # 更精确的定位
+        h[virtual_mask] = self.fp_emb(fp)  
 
-        # === 前三层GIN使用原始边 ===
         x1 = self.conv1(h, edge_index_ori)
         x1 = F.leaky_relu(x1)
         x1_for_pool = x1.clone()
@@ -642,11 +615,9 @@ class GINTransformerNet(nn.Module):
         x3_for_pool = x3.clone()
         x3_for_pool[virtual_mask] = 0.
         x3_pool = global_add_pool(x3_for_pool, batch)
-        # === 第四层Transformer使用完整边 ===
         x4 = self.conv4(x3, edge_index_full)
         x4 = F.leaky_relu(x4)
         x4_pool = global_add_pool(x4, batch)
-        # # === 特征拼接与分类 ===
         graph_repr = torch.cat([x1_pool, x2_pool, x3_pool, x4_pool], dim=1)
         out = self.fc(graph_repr)
         if inference:
@@ -703,8 +674,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     best_acc = 0
     val_losses = []
     val_acc = []
-    # 获取所有可能的类别标签
-    class_labels = np.arange(len(class_list))  # 关键修改
+
+    class_labels = np.arange(len(class_list)) 
 
     for epoch in range(num_epochs):
         # print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -717,8 +688,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 model.eval()
 
             running_loss = []
-            all_preds = []  # 存储整个phase的预测结果
-            all_labels = []  # 存储整个phase的真实标签
+            all_preds = [] 
+            all_labels = []
 
             for data in dataloaders[phase]:
                 x, y, edge_index_ori, edge_index_full, batch, fp = data.x, data.y, data.edge_index_ori, data.edge_index_full, data.batch, data.fp
@@ -731,9 +702,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 optimizer.zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
-                    # data.y.shape[0] 就是 batch_size
+                    # data.y.shape[0]
                     bs = data.y.size(0)
-                    fp = fp.view(bs, -1).cuda()  # 变成 [batch_size, fp_dim]
+                    fp = fp.view(bs, -1).cuda()
                     pred = model(x, edge_index_ori, edge_index_full, batch, fp)
                     # pred = model(x, edge_index, batch,fingerprint)
                     loss = criterion(pred, y)
@@ -744,28 +715,26 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
                 running_loss.append(loss.item())
 
-                # 收集预测和标签
                 preds = torch.argmax(pred, dim=1).detach().cpu().numpy()
                 all_preds.extend(preds)
                 all_labels.extend(y.cpu().numpy())
 
-            # 整个phase结束后统一计算指标
             epoch_loss = np.mean(running_loss)
 
-            # 显式传递所有标签类别
+
             epoch_acc = accuracy_score(all_labels, all_preds)
             epoch_mcc = matthews_corrcoef(
                 all_labels,
                 all_preds
             )
 
-            # 显式计算混淆矩阵（可选）
+
             cm = confusion_matrix(
                 all_labels,
                 all_preds,
-                labels=class_labels  # 关键修改
+                labels=class_labels  
             )
-            # print(f'Confusion Matrix:\n{cm}')  # 可选打印
+            # print(f'Confusion Matrix:\n{cm}')  
 
             print('{} Loss: {:.4f} Accuracy: {:.4f} MCC: {:.4f}'.format(
                 phase, epoch_loss, epoch_acc, epoch_mcc))
@@ -802,7 +771,7 @@ def init_weights(m):
 
 
 #
-# model = GINTransformerNet(lib_size=lib_size, num_classes=len(class_list), fp_dim=len(train_fp[0]))
+# model = T-Net(lib_size=lib_size, num_classes=len(class_list), fp_dim=len(train_fp[0]))
 #
 # model.apply(init_weights)
 # model.cuda()
