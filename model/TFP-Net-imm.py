@@ -530,7 +530,7 @@ from torch_geometric.nn import GINConv, global_add_pool, GraphNorm
 from torch_geometric.utils import to_dense_batch
 
 
-class TNet(nn.Module):
+class TFPNet(nn.Module):
     def __init__(self, num_classes=1, lib_size=10000, hidden_dim=256, fp_dim=2072,
                  heads=8, fp_emb_dim=128, dropout=0.5):
         super(GINTransformerNet, self).__init__()
@@ -771,7 +771,7 @@ def init_weights(m):
 
 
 #
-# model = TNet(lib_size=lib_size, num_classes=len(class_list), fp_dim=len(train_fp[0]))
+# model = TFPNet(lib_size=lib_size, num_classes=len(class_list), fp_dim=len(train_fp[0]))
 #
 # model.apply(init_weights)
 # model.cuda()
