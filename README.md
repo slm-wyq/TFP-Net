@@ -10,6 +10,8 @@
   <img src="图片1.svg" alt="TFP-Net overview" width="820">
 </p>
 
+This repository accompanies the manuscript *Gly_embedding_with_application_SLM.pdf*
+(included in this directory).
 
 ---
 
@@ -57,9 +59,9 @@ a_github/
 ├── data/                       # Input data (glycan sequences, embeddings, fingerprints)
 ├── output/                     # Generated outputs (embeddings, risk scores, …)
 ├── weights/                    # Pretrained model weights (.pt / .pth)
-├── MD/                         # Molecular-dynamics docking conformations (glycan–protein, .pdb)
-├── html/                       # Interactive embedding visualizations (our web app)
-├── Gly_embedding_with_application_SLM.pdf   # Manuscript draft (preprint)
+├── MD/                         # Glycan–immune-receptor docking conformations (.pdb)
+├── html/                       # Interactive web application
+├── Gly_embedding_with_application_SLM.pdf   # Manuscript
 └── 图片1.svg                   # Main figure (Figure 1)
 ```
 
@@ -94,22 +96,28 @@ yielding an interpretable "human-like ↔ pathogen-like" risk score.
 
 ### 4 · Structural context (`MD/`)
 
-`.pdb` files contain **docked conformations of glycan–protein complexes** obtained from molecular
-dynamics, providing structural context for selected glycans (e.g., isomer pairs, immunogenic vs.
-non-immunogenic examples).
+`.pdb` files contain the **docked conformations of glycans bound to the immune receptors
+DC-SIGN and Siglec-7**, obtained by molecular docking / molecular dynamics. These structures
+provide a structural, receptor-level view that complements the learned embeddings and risk scores.
 
 ---
 
 ## Interactive web application (`html/`)
 
-To make the learned representations explorable, we built an **interactive web app** that renders
-the glycan embedding space as zoomable **Plotly** scatter plots. Each page is a
-**self-contained HTML file** — open it directly in any modern browser, no server required.
+We built an **interactive web application** around TFP-Net. It goes well beyond displaying our
+results — it turns the model into a usable tool with the following capabilities:
 
-Beyond showing the **clustering structure** of the embeddings, the pages are fully interactive:
-**hovering over any point reveals the detailed information of that specific glycan** (e.g., its
-sequence and metadata), so individual glycans — not just the overall clusters — can be inspected
-directly in the browser.
+- **Predict a single glycan.** Enter an arbitrary glycan sequence and obtain its predicted
+  **risk score** on the fly.
+- **Batch prediction.** Upload / paste many glycans at once and score them all together.
+- **Embedding-based clustering.** Project glycans into the learned embedding space and explore
+  their **clustering structure** interactively.
+
+The visualizations are rendered as zoomable **Plotly** scatter plots in **self-contained HTML
+pages** — open them directly in any modern browser, no server required. They show not only the
+**clustering structure** of the embeddings; the plots are fully interactive, so **hovering over
+any point reveals the detailed information of that specific glycan** (e.g., its sequence and
+metadata), letting individual glycans — not just the overall clusters — be inspected directly.
 
 | Page | What it shows |
 | ---- | ------------- |
@@ -169,29 +177,3 @@ python sigmod_risk.py      # normalize risk score to [-1, 1]
 ```
 
 > Input/output paths are set near the top of each script — adjust them to your local layout.
-
----
-
-## Citation
-
-If you find this work useful, please cite the accompanying manuscript:
-
-```bibtex
-@article{TFPNet,
-  title  = {Glycan Embedding with Application: A Topology–Fingerprint Fusion Network},
-  author = {SLM and collaborators},
-  year   = {2025},
-  note   = {Manuscript in preparation. See Gly_embedding_with_application_SLM.pdf.}
-}
-```
-
-## Acknowledgements
-
-The graph-topology branch builds on the glycan graph-encoding ideas from
-[**SweetNet**](https://github.com/BojarLab/glycowork). Fingerprint utilities adapt PubChem SMARTS
-patterns from **PyBioMed**.
-
-## License & contact
-
-This repository is released for peer review and demonstration purposes. Please contact the
-authors regarding reuse, collaboration, or access to the full pipeline.
