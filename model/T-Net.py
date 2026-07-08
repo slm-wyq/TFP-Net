@@ -166,7 +166,6 @@ lib = ['', '1,4-Anhydro-Gal', '1,4-Anhydro-Kdo', '1-1', '1-2', '1-3', '1-4', '1-
 
 def unwrap(nested_list):
     """converts a nested list into a flat list"""
-    # 将嵌套列表转换为平坦的一维列表
     out = [item for sublist in nested_list for item in sublist]
     return out
 
@@ -536,10 +535,9 @@ val_loader = DataLoader(glycan_graphs_val, batch_size=32, shuffle=False)
 dataloaders = {'train': train_loader, 'val': val_loader}
 
 
-class SweetNet_Transformer(torch.nn.Module):
+class TNet(torch.nn.Module):
     def __init__(self, num_classes=1, lib_size=10000, heads=8):
         super(SweetNet_Transformer, self).__init__()
-        # 使用多头注意力，每个头32维，4*32=128输出特征
         self.conv1 = TransformerConv(256, 32, heads=heads, concat=True)
         self.pool1 = TopKPooling(256, ratio=0.8)
         self.conv2 = TransformerConv(256, 32, heads=heads, concat=True)
@@ -705,7 +703,7 @@ def init_weights(m):
         torch.nn.init.sparse_(m.weight, sparsity=0.1)
 
 
-model = SweetNet_Transformer(num_classes=len(class_list), lib_size=lib_size)
+model = TNet(num_classes=len(class_list), lib_size=lib_size)
 model.apply(init_weights)
 model.cuda()
 
@@ -729,7 +727,7 @@ abc = list(range(len(taxonomic_glycans.kingdom.values.tolist())))
 glycan_graphs = dataset_to_graphs(taxonomic_glycans.target.values.tolist(), abc, libr=lib)
 glycan_loader = DataLoader(glycan_graphs, batch_size=32, shuffle=False)
 
-model_ft = SweetNet_Transformer(lib_size=lib_size, num_classes=len(class_list))
+model_ft = TNet(lib_size=lib_size, num_classes=len(class_list))
 model_ft.load_state_dict(torch.load('../weights/T-Net-kingdom.pt'))
 model_ft = model_ft.cuda()
 
