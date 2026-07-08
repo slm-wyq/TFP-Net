@@ -83,8 +83,7 @@ a_github/
 
 ### 3 · Risk scoring (`model/GMM.py`)
 
-Fits reference density models over the learned embedding space with **Gaussian Mixture Models**
-(component count selected automatically by BIC; StandardScaler + whitened PCA preprocessing).
+Fits reference density models over the learned embedding space with **Gaussian Mixture Models**.
 Two reference distributions are estimated — **human (`Homo sapiens`)** and
 **immunogenic pathogen** — and each glycan is scored by the **log-likelihood ratio** between them,
 yielding an interpretable "human-like ↔ pathogen-like" risk score.
