@@ -32,12 +32,6 @@ try:
     from torch_geometric.loader import DataLoader
 except ImportError:
     raise ImportError('<torch_geometric missing; cannot do deep learning>')
-# 显示所有列（去掉列数限制）
-pd.set_option('display.max_columns', None)
-# 调整显示宽度（避免列被换行截断）
-pd.set_option('display.width', 1000)  # 根据实际列数调整数值
-# （可选）如果列名过长，可设置最大列宽
-pd.set_option('display.max_colwidth', 100)
 lib = ['', '1,4-Anhydro-Gal', '1,4-Anhydro-Kdo', '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1dAlt-ol', '1dEry-ol',
        '2,3-Anhydro-All', '2,3-Anhydro-Man', '2,3-Anhydro-Rib', '2,5-Anhydro-D-Alt', '2,5-Anhydro-D-AltOS',
        '2,5-Anhydro-L-Man', '2,5-Anhydro-Man', '2,5-Anhydro-Man-ol', '2,5-Anhydro-ManOS', '2,5-Anhydro-Tal-ol',
@@ -398,35 +392,20 @@ def glycan_to_graph(glycan, libr=lib):
 
 
 def dataset_to_graphs(glycan_list, labels, fingerprint_list, libr=lib, label_type=torch.long):
-    """wrapper function to convert a whole list of glycans into a graph dataset
-    glycan_list -- list of IUPACcondensed glycan sequences (string)
-    label_type -- which tensor type for label, default is torch.long for binary labels, change to torch.float for continuous
-    separate -- True returns node list / edge list / label list as separate files; False returns list of data tuples; default is False
-    lib -- sorted list of unique glycoletters observed in the glycans of our dataset
-    context -- legacy-ish; used for generating graph context dataset for pre-training; keep at False
-    error_catch -- troubleshooting option, True will print glycans that cannot be converted into graphs; default is False
-    wo_labels -- change to True if you do not want to pass and receive labels; default is False
-
-    returns list of node list / edge list / label list data tuples
-    """
     graphs = []
     for seq, fp, y in zip(glycan_list, fingerprint_list, labels):
         x_nodes, edges = glycan_to_graph(seq, libr)
         num_nodes = len(x_nodes)
         x = torch.tensor(x_nodes + [len(libr)], dtype=torch.long)
 
-        # 原始边
         send_ori, recv_ori = edges
         edge_index_ori = torch.tensor([send_ori, recv_ori], dtype=torch.long)
 
-        # 虚拟节点边（双向连接）
         send_extra = list(range(num_nodes)) + [num_nodes] * num_nodes
         recv_extra = [num_nodes] * num_nodes + list(range(num_nodes))
         edge_index_virtual = torch.tensor([send_extra, recv_extra], dtype=torch.long)
 
-        # 合并后的完整边
         edge_index_full = torch.cat([edge_index_ori, edge_index_virtual], dim=1)
-        # 标签与指纹
         y_tensor = torch.tensor([y], dtype=label_type)
         fp_tensor = torch.tensor(fp, dtype=torch.float)
 
@@ -564,7 +543,6 @@ class TFPNet(nn.Module):
         # Node embedding layer
         self.item_embedding = nn.Embedding(num_embeddings=lib_size + 1,
                                            embedding_dim=hidden_dim)
-        # 指纹 embedding 层
         self.fp_emb = nn.Sequential(
             nn.Linear(fp_dim, fp_emb_dim),
             nn.LeakyReLU(),
@@ -615,7 +593,6 @@ class TFPNet(nn.Module):
 
     def forward(self, x, edge_index_ori, edge_index_full, batch, fp, inference=False):
         h = self.item_embedding(x)  # [N, hidden]
-        # 生成虚拟节点mask 
         virtual_mask = torch.zeros_like(batch, dtype=torch.bool)
         unique_batch = torch.unique(batch)
         for b in unique_batch:
@@ -623,7 +600,6 @@ class TFPNet(nn.Module):
             last_idx = torch.where(mask)[0][-1]
             virtual_mask[last_idx] = True
         h[virtual_mask] = self.fp_emb(fp) 
-        # === 前三层使用原始边 ===
         x1 = self.conv1(h, edge_index_ori)
         x1 = F.leaky_relu(x1)
         x1_for_pool = x1.clone()
@@ -639,7 +615,6 @@ class TFPNet(nn.Module):
         x3_for_pool = x3.clone()
         x3_for_pool[virtual_mask] = 0.
         x3_pool = global_add_pool(x3_for_pool, batch)
-        # === 第四层Transformer使用完整边 ===
         x4 = self.conv4(x3, edge_index_full)
         x4 = F.leaky_relu(x4)
         x4_pool = global_add_pool(x4, batch)
@@ -848,15 +823,13 @@ df = pd.DataFrame({
     "kingdom": labels
 })
 
-# 查看每个类点的数量
 counts = df["kingdom"].value_counts()
 # print(counts)
-# 移除图表四周的边框线
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 ax.spines['left'].set_visible(False)
-plt.xlabel('t-SNE Dim1')  # 加粗+加大
+plt.xlabel('t-SNE Dim1') 
 plt.ylabel('t-SNE Dim2')
 plt.title(f'TFP-Net')
 
